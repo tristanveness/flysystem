@@ -292,15 +292,15 @@ class Ftp extends AbstractFtpAdapter
     /**
      * @inheritdoc
      */
-    public function rename($path, $newpath)
+    public function rename($source, $destination)
     {
-        return ftp_rename($this->getConnection(), $path, $newpath);
+        return ftp_rename($this->getConnection(), $source, $destination);
     }
 
     /**
      * @inheritdoc
      */
-    public function delete($path)
+    public function delete(string $path): void
     {
         return ftp_delete($this->getConnection(), $path);
     }
@@ -308,7 +308,7 @@ class Ftp extends AbstractFtpAdapter
     /**
      * @inheritdoc
      */
-    public function deleteDir($dirname)
+    public function deleteDir(string $dirname): void
     {
         $connection = $this->getConnection();
         $contents = array_reverse($this->listDirectoryContents($dirname, false));
@@ -329,7 +329,7 @@ class Ftp extends AbstractFtpAdapter
     /**
      * @inheritdoc
      */
-    public function createDir($dirname, Config $config)
+    public function createDir(string $path, Config $config): array
     {
         $connection = $this->getConnection();
         $directories = explode('/', $dirname);
@@ -378,7 +378,7 @@ class Ftp extends AbstractFtpAdapter
     /**
      * @inheritdoc
      */
-    public function getMetadata($path)
+    public function getMetadata(string $path): array
     {
         $connection = $this->getConnection();
 
@@ -412,7 +412,7 @@ class Ftp extends AbstractFtpAdapter
     /**
      * @inheritdoc
      */
-    public function getMimetype($path)
+    public function getMimetype(string $path): array
     {
         if ( ! $metadata = $this->getMetadata($path)) {
             return false;
@@ -426,7 +426,7 @@ class Ftp extends AbstractFtpAdapter
     /**
      * @inheritdoc
      */
-    public function getTimestamp($path)
+    public function getTimestamp(string $path): array
     {
         $timestamp = ftp_mdtm($this->getConnection(), $path);
 
@@ -470,7 +470,7 @@ class Ftp extends AbstractFtpAdapter
     /**
      * @inheritdoc
      */
-    public function setVisibility($path, $visibility)
+    public function setVisibility(string $path, string $visibility): array
     {
         $mode = $visibility === AdapterInterface::VISIBILITY_PUBLIC ? $this->getPermPublic() : $this->getPermPrivate();
 

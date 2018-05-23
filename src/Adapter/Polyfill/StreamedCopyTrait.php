@@ -14,7 +14,7 @@ trait StreamedCopyTrait
      *
      * @return bool
      */
-    public function copy($path, $newpath)
+    public function copy(string $source, string $destination): void
     {
         $response = $this->readStream($path);
 

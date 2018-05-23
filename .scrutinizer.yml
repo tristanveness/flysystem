@@ -1,6 +1,6 @@
 filter:
     paths: [src/*]
-    excluded_paths: [bin/*, spec/*, tests/*, stub/*, coverage/*]
+    excluded_paths: [bin/*, spec/*, old_tests/*, stub/*, coverage/*]
 checks:
   php:
     code_rating: true

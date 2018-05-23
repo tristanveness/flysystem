@@ -2,7 +2,7 @@
 
 namespace League\Flysystem;
 
-interface AdapterInterface extends ReadInterface
+interface AdapterInterface
 {
     /**
      * @const  VISIBILITY_PUBLIC  public visibility
@@ -17,94 +17,104 @@ interface AdapterInterface extends ReadInterface
     /**
      * Write a new file.
      *
-     * @param string $path
+     * @param string $destination
      * @param string $contents
-     * @param Config $config   Config object
+     * @param Config $config Config object
      *
-     * @return array|false false on failure file meta data on success
+     * @return array file meta data
+     *
+     * @throws FilesystemOperationFailedException
      */
-    public function write($path, $contents, Config $config);
+    public function write(string $destination, string $contents, Config $config): array;
 
     /**
      * Write a new file using a stream.
      *
-     * @param string   $path
+     * @param string   $destination
      * @param resource $resource
-     * @param Config   $config   Config object
+     * @param Config   $config Config object
      *
-     * @return array|false false on failure file meta data on success
+     * @return array file meta data
+     *
+     * @throws FilesystemOperationFailedException
      */
-    public function writeStream($path, $resource, Config $config);
+    public function writeStream(string $destination, $resource, Config $config): array;
 
     /**
      * Update a file.
      *
-     * @param string $path
+     * @param string $destination
      * @param string $contents
-     * @param Config $config   Config object
+     * @param Config $config Config object
      *
-     * @return array|false false on failure file meta data on success
+     * @return array false on failure file meta data on success
+     *
+     * @throws FilesystemOperationFailedException
      */
-    public function update($path, $contents, Config $config);
+    public function update(string $destination, string $contents, Config $config): array;
 
     /**
      * Update a file using a stream.
      *
-     * @param string   $path
+     * @param string   $destination
      * @param resource $resource
-     * @param Config   $config   Config object
+     * @param Config   $config Config object
      *
-     * @return array|false false on failure file meta data on success
+     * @return array file meta data
+     *
+     * @throws FilesystemOperationFailedException
      */
-    public function updateStream($path, $resource, Config $config);
+    public function updateStream(string $destination, $resource, Config $config): array;
 
     /**
      * Rename a file.
      *
-     * @param string $path
-     * @param string $newpath
+     * @param $source
+     * @param $destination
      *
-     * @return bool
+     * @throws FilesystemOperationFailedException
      */
-    public function rename($path, $newpath);
+    public function rename(string $source, string $destination): void;
 
     /**
      * Copy a file.
      *
-     * @param string $path
-     * @param string $newpath
+     * @param string $source
+     * @param string $destination
      *
-     * @return bool
+     * @throws FilesystemOperationFailedException
      */
-    public function copy($path, $newpath);
+    public function copy(string $source, string $destination): void;
 
     /**
      * Delete a file.
      *
      * @param string $path
      *
-     * @return bool
+     * @throws FilesystemOperationFailedException
      */
-    public function delete($path);
+    public function delete(string $path): void;
 
     /**
      * Delete a directory.
      *
-     * @param string $dirname
+     * @param string $path
      *
-     * @return bool
+     * @throws FilesystemOperationFailedException
      */
-    public function deleteDir($dirname);
+    public function deleteDir(string $path): void;
 
     /**
      * Create a directory.
      *
-     * @param string $dirname directory name
+     * @param string $path
      * @param Config $config
      *
-     * @return array|false
+     * @return array
+     *
+     * @throws FilesystemOperationFailedException
      */
-    public function createDir($dirname, Config $config);
+    public function createDir(string $path, Config $config): array;
 
     /**
      * Set the visibility for a file.
@@ -112,7 +122,107 @@ interface AdapterInterface extends ReadInterface
      * @param string $path
      * @param string $visibility
      *
-     * @return array|false file meta data
+     * @return array file meta data
+     *
+     * @throws FilesystemOperationFailedException
      */
-    public function setVisibility($path, $visibility);
+    public function setVisibility(string $path, string $visibility): array;
+
+    /**
+     * Check whether a file exists.
+     *
+     * @param string $path
+     *
+     * @return array|false
+     */
+    public function has(string $path);
+
+    /**
+     * Read a file.
+     *
+     * @param string $path
+     *
+     * @return array
+     *
+     * @throws FilesystemOperationFailedException
+     */
+    public function read(string $path): array;
+
+    /**
+     * Read a file as a stream.
+     *
+     * @param string $source
+     *
+     * @return array
+     *
+     * @throws FilesystemOperationFailedException
+     */
+    public function readStream(string $source): array;
+
+    /**
+     * List contents of a directory.
+     *
+     * @param string $path
+     * @param bool   $recursive
+     *
+     * @return array
+     *
+     * @throws FilesystemOperationFailedException
+     */
+    public function listContents(string $path, bool $recursive): array;
+
+    /**
+     * Get all the meta data of a file or directory.
+     *
+     * @param string $path
+     *
+     * @return array
+     *
+     * @throws FilesystemOperationFailedException
+     */
+    public function getMetadata(string $path): array;
+
+    /**
+     * Get the size of a file.
+     *
+     * @param string $path
+     *
+     * @return array
+     *
+     * @throws FilesystemOperationFailedException
+     */
+    public function getSize(string $path): array;
+
+    /**
+     * Get the mimetype of a file.
+     *
+     * @param string $path
+     *
+     * @return array
+     *
+     * @throws FilesystemOperationFailedException
+     */
+    public function getMimetype(string $path): array;
+
+    /**
+     * Get the last modified time of a file as a timestamp.
+     *
+     * @param string $path
+     *
+     * @return array
+     *
+     * @throws FilesystemOperationFailedException
+     */
+    public function getTimestamp(string $path): array;
+
+    /**
+     * Get the visibility of a file.
+     *
+     * @param string $path
+     *
+     * @return array
+     *
+     * @throws FilesystemOperationFailedException
+     */
+    public function getVisibility(string $path): array;
 }

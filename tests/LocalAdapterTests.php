@@ -3,8 +3,7 @@
 namespace League\Flysystem\Adapter;
 
 use League\Flysystem\Config;
-use League\Flysystem\FileNotFoundException;
-use League\Flysystem\Filesystem;
+use League\Flysystem\FilesystemOperationFailedException;
 use PHPUnit\Framework\TestCase;
 
 function fopen($result, $mode)
@@ -91,10 +90,10 @@ class LocalAdapterTests extends TestCase
             $this->markTestSkipped('Windows does not support this.');
         }
 
-        (new Local(__DIR__.'/files'))->write('file.txt', 'contents', new Config());
+        (new Local(__DIR__ . '/files'))->write('file.txt', 'contents', new Config());
 
-        $adapter = new Local('file://'.__DIR__.'/files');
-        $this->assertCount(1, $adapter->listContents());
+        $adapter = new Local('file://' . __DIR__ . '/files');
+        $this->assertCount(1, $adapter->listContents(''));
     }
 
     public function testRelativeRootsAreSupportes()
@@ -102,7 +101,7 @@ class LocalAdapterTests extends TestCase
         (new Local(__DIR__ . '/files'))->write('file.txt', 'contents', new Config());
 
         $adapter = new Local(__DIR__ . '/files/../files');
-        $this->assertCount(1, $adapter->listContents());
+        $this->assertCount(1, $adapter->listContents(''));
     }
 
     public function testHasWithDir()
@@ -175,22 +174,28 @@ class LocalAdapterTests extends TestCase
     {
         $adapter = $this->adapter;
         $adapter->write('file.ext', 'content', new Config(['visibility' => 'public']));
-        $this->assertTrue($adapter->copy('file.ext', 'new.ext'));
+        $adapter->copy('file.ext', 'new.ext');
         $this->assertTrue($adapter->has('new.ext'));
         $adapter->delete('file.ext');
         $adapter->delete('new.ext');
     }
 
-    public function testFailingStreamCalls()
+    public function testFailingFopen()
     {
-        $this->assertFalse($this->adapter->writeStream('false', tmpfile(), new Config()));
-        $this->assertFalse($this->adapter->writeStream('fail.close', tmpfile(), new Config()));
+        $this->expectException(FilesystemOperationFailedException::class);
+        $this->adapter->writeStream('false', tmpfile(), new Config());
+    }
+
+    public function testFailingFclose()
+    {
+        $this->expectException(FilesystemOperationFailedException::class);
+        $this->adapter->writeStream('fail.close', tmpfile(), new Config());
     }
 
     public function testNullPrefix()
     {
         $this->adapter->setPathPrefix('');
-        $path = 'some'.DIRECTORY_SEPARATOR.'path.ext';
+        $path = 'some' . DIRECTORY_SEPARATOR . 'path.ext';
         $this->assertEquals($path, $this->adapter->applyPathPrefix($path));
         $this->assertEquals($path, $this->adapter->removePathPrefix($path));
     }
@@ -219,10 +224,10 @@ class LocalAdapterTests extends TestCase
 
     public function testRenameToNonExistsingDirectory()
     {
-        $this->adapter->write('file.txt', 'contents', new Config());
+        $this->adapter->write('file.txt', 'this is the contents', new Config());
         $dirname = uniqid();
         $this->assertFalse(is_dir($this->root . DIRECTORY_SEPARATOR . $dirname));
-        $this->assertTrue($this->adapter->rename('file.txt', $dirname . '/file.txt'));
+        $this->adapter->rename('file.txt', $dirname . '/file.txt');
     }
 
     public function testNotWritableRoot()
@@ -287,7 +292,8 @@ class LocalAdapterTests extends TestCase
 
     public function testCreateDirFail()
     {
-        $this->assertFalse($this->adapter->createDir('fail.plz', new Config()));
+        $this->expectException(FilesystemOperationFailedException::class);
+        $this->adapter->createDir('fail.plz', new Config());
     }
 
     public function testCreateDirDefaultVisibility()
@@ -369,9 +375,8 @@ class LocalAdapterTests extends TestCase
 
     public function testVisibilityFail()
     {
-        $this->assertFalse(
-            $this->adapter->setVisibility('chmod.fail', 'public')
-        );
+        $this->expectException(FilesystemOperationFailedException::class);
+        $this->adapter->setVisibility('chmod.fail', 'public');
     }
 
     public function testApplyPathPrefix()
@@ -387,7 +392,7 @@ class LocalAdapterTests extends TestCase
         }
 
         $target = __DIR__ . DIRECTORY_SEPARATOR . 'files' . DIRECTORY_SEPARATOR;
-        $link = __DIR__ . DIRECTORY_SEPARATOR .'link_to_files';
+        $link = __DIR__ . DIRECTORY_SEPARATOR . 'link_to_files';
         symlink($target, $link);
 
         $adapter = new Local($link);
@@ -406,7 +411,7 @@ class LocalAdapterTests extends TestCase
         file_put_contents($original, 'something');
         symlink($original, $link);
         $adapter = new Local($root);
-        $adapter->listContents();
+        $adapter->listContents('');
     }
 
     public function testLinkIsSkipped()
@@ -417,7 +422,7 @@ class LocalAdapterTests extends TestCase
         file_put_contents($original, 'something');
         symlink($original, $link);
         $adapter = new Local($root, LOCK_EX, Local::SKIP_LINKS);
-        $result = $adapter->listContents();
+        $result = $adapter->listContents('');
         $this->assertCount(1, $result);
     }
 
@@ -458,15 +463,20 @@ class LocalAdapterTests extends TestCase
         $this->assertEquals('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', $adapter->getMimetype('test.xlsx')['mimetype']);
     }
 
-    public function testDeleteFileShouldReturnTrue(){
+    public function testDeleteFile()
+    {
         $root = __DIR__ . '/files/';
         $original = $root . 'delete.txt';
         file_put_contents($original, 'something');
-        $this->assertTrue($this->adapter->delete('delete.txt'));
+        $this->assertTrue($this->adapter->has('delete.txt'));
+        $this->adapter->delete('delete.txt');
+        $this->assertFalse($this->adapter->has('delete.txt'));
     }
 
-    public function testDeleteMissingFileShouldReturnFalse(){
-        $this->assertFalse($this->adapter->delete('missing.txt'));
+    public function testDeleteMissingFileShouldReturnFalse()
+    {
+        $this->expectException(FilesystemOperationFailedException::class);
+        $this->adapter->delete('missing.txt');
     }
 
     /**
@@ -474,7 +484,6 @@ class LocalAdapterTests extends TestCase
      */
     public function testRootDirectoryCreationProblemCausesAnError()
     {
-        $root = __DIR__ . '/files/fail.plz';
-        new Local($root);
+        new Local(__DIR__ . '/files/fail.plz');
     }
 }

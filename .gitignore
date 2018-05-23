@@ -3,4 +3,4 @@ bin
 coverage
 coverage.xml
 composer.lock
-tests/files
+old_tests/files

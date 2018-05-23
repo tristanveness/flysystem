@@ -7,7 +7,7 @@ class Ftpd extends Ftp
     /**
      * @inheritdoc
      */
-    public function getMetadata($path)
+    public function getMetadata(string $path): array
     {
         if ($path === '') {
             return ['type' => 'dir', 'path' => ''];

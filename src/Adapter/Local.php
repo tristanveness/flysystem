@@ -8,6 +8,7 @@ use finfo as Finfo;
 use League\Flysystem\AdapterInterface;
 use League\Flysystem\Config;
 use League\Flysystem\Exception;
+use League\Flysystem\FilesystemOperationFailedException;
 use League\Flysystem\NotSupportedException;
 use League\Flysystem\UnreadableFileException;
 use League\Flysystem\Util;
@@ -87,47 +88,41 @@ class Local extends AbstractAdapter
     }
 
     /**
-     * Ensure the root directory exists.
+     * Ensure a directory exists.
      *
-     * @param string $root root directory path
+     * @param string $path root directory path
      *
      * @return void
      *
      * @throws Exception in case the root directory can not be created
      */
-    protected function ensureDirectory($root)
+    protected function ensureDirectory($path)
     {
-        if ( ! is_dir($root)) {
+        if ( ! is_dir($path)) {
             $umask = umask(0);
-            @mkdir($root, $this->permissionMap['dir']['public'], true);
+            @mkdir($path, $this->permissionMap['dir']['public'], true);
             umask($umask);
 
-            if ( ! is_dir($root)) {
-                throw new Exception(sprintf('Impossible to create the root directory "%s".', $root));
+            if ( ! is_dir($path)) {
+                throw new Exception(sprintf('Impossible to create the root directory "%s".', $path));
             }
         }
     }
 
-    /**
-     * @inheritdoc
-     */
-    public function has($path)
+    public function has(string $path)
     {
         $location = $this->applyPathPrefix($path);
 
         return file_exists($location);
     }
 
-    /**
-     * @inheritdoc
-     */
-    public function write($path, $contents, Config $config)
+    public function write(string $path, string $contents, Config $config): array
     {
         $location = $this->applyPathPrefix($path);
         $this->ensureDirectory(dirname($location));
 
         if (($size = file_put_contents($location, $contents, $this->writeFlags)) === false) {
-            return false;
+            throw FilesystemOperationFailedException::write("Could not write to file at location {$location}.");
         }
 
         $type = 'file';
@@ -141,27 +136,23 @@ class Local extends AbstractAdapter
         return $result;
     }
 
-    /**
-     * @inheritdoc
-     */
-    public function writeStream($path, $resource, Config $config)
+    public function writeStream(string $path, $resource, Config $config): array
     {
         $location = $this->applyPathPrefix($path);
         $this->ensureDirectory(dirname($location));
         $stream = fopen($location, 'w+b');
 
         if ( ! $stream) {
-            return false;
+            throw FilesystemOperationFailedException::writeStream("Could not open stream at location {$location}.");
         }
 
         stream_copy_to_stream($resource, $stream);
 
         if ( ! fclose($stream)) {
-            return false;
+            throw FilesystemOperationFailedException::writeStream("Could not close stream for file at location {$location}.");
         }
 
         $type = 'file';
-
         $result = compact('type', 'path');
 
         if ($visibility = $config->get('visibility')) {
@@ -172,10 +163,7 @@ class Local extends AbstractAdapter
         return $result;
     }
 
-    /**
-     * @inheritdoc
-     */
-    public function readStream($path)
+    public function readStream(string $path): array
     {
         $location = $this->applyPathPrefix($path);
         $stream = fopen($location, 'rb');
@@ -183,137 +171,99 @@ class Local extends AbstractAdapter
         return ['type' => 'file', 'path' => $path, 'stream' => $stream];
     }
 
-    /**
-     * @inheritdoc
-     */
-    public function updateStream($path, $resource, Config $config)
+    public function updateStream(string $path, $resource, Config $config): array
     {
         return $this->writeStream($path, $resource, $config);
     }
 
-    /**
-     * @inheritdoc
-     */
-    public function update($path, $contents, Config $config)
+    public function update(string $path, string $contents, Config $config): array
     {
+        $type = 'file';
         $location = $this->applyPathPrefix($path);
         $size = file_put_contents($location, $contents, $this->writeFlags);
 
         if ($size === false) {
-            return false;
+            throw FilesystemOperationFailedException::update("Could not update file at location {$location}.");
         }
 
-        $type = 'file';
-
-        $result = compact('type', 'path', 'size', 'contents');
-
-        if ($mimetype = Util::guessMimeType($path, $contents)) {
-            $result['mimetype'] = $mimetype;
-        }
-
-        return $result;
+        return compact('type', 'path', 'size', 'contents');
     }
 
-    /**
-     * @inheritdoc
-     */
-    public function read($path)
+    public function read(string $path): array
     {
         $location = $this->applyPathPrefix($path);
         $contents = file_get_contents($location);
 
         if ($contents === false) {
-            return false;
+            throw FilesystemOperationFailedException::read("Could not read file at location {$location}.");
         }
 
         return ['type' => 'file', 'path' => $path, 'contents' => $contents];
     }
 
-    /**
-     * @inheritdoc
-     */
-    public function rename($path, $newpath)
+    public function rename(string $source, string $destination): void
     {
-        $location = $this->applyPathPrefix($path);
-        $destination = $this->applyPathPrefix($newpath);
-        $parentDirectory = $this->applyPathPrefix(Util::dirname($newpath));
-        $this->ensureDirectory($parentDirectory);
+        $location = $this->applyPathPrefix($source);
+        $newLocation = $this->applyPathPrefix($destination);
+        $this->ensureDirectory(Util::dirname($newLocation));
 
-        return rename($location, $destination);
+        if ( ! rename($location, $newLocation)) {
+            throw FilesystemOperationFailedException::rename("Could not rename {$source} to {$destination}.");
+        }
     }
 
-    /**
-     * @inheritdoc
-     */
-    public function copy($path, $newpath)
+    public function copy(string $source, string $destination): void
     {
-        $location = $this->applyPathPrefix($path);
-        $destination = $this->applyPathPrefix($newpath);
-        $this->ensureDirectory(dirname($destination));
+        $location = $this->applyPathPrefix($source);
+        $newLocation = $this->applyPathPrefix($destination);
+        $this->ensureDirectory(dirname($newLocation));
 
-        return copy($location, $destination);
+        if ( ! copy($location, $newLocation)) {
+            throw FilesystemOperationFailedException::copy("Unable to copy {$source} to {$destination}.");
+        }
     }
 
-    /**
-     * @inheritdoc
-     */
-    public function delete($path)
+    public function delete(string $path): void
     {
         $location = $this->applyPathPrefix($path);
 
-        return @unlink($location);
+        if ( ! @unlink($location)) {
+            throw FilesystemOperationFailedException::delete("Could not delete file at location {$location}.");
+        }
     }
 
-    /**
-     * @inheritdoc
-     */
-    public function listContents($directory = '', $recursive = false)
+    public function listContents(string $path, bool $recursive = false): array
     {
         $result = [];
-        $location = $this->applyPathPrefix($directory);
+        $location = $this->applyPathPrefix($path);
 
         if ( ! is_dir($location)) {
             return [];
         }
 
-        $iterator = $recursive ? $this->getRecursiveDirectoryIterator($location) : $this->getDirectoryIterator($location);
+        $iterator = $recursive ? $this->getRecursiveDirectoryIterator($location) : new DirectoryIterator($location);
 
         foreach ($iterator as $file) {
-            $path = $this->getFilePath($file);
-
-            if (preg_match('#(^|/|\\\\)\.{1,2}$#', $path)) {
-                continue;
-            }
-
+            if ($recursive === false && $file->isDot()) continue;
             $result[] = $this->normalizeFileInfo($file);
         }
 
         return array_filter($result);
     }
 
-    /**
-     * @inheritdoc
-     */
-    public function getMetadata($path)
+    public function getMetadata(string $path): array
     {
         $location = $this->applyPathPrefix($path);
-        $info = new SplFileInfo($location);
 
-        return $this->normalizeFileInfo($info);
+        return $this->normalizeFileInfo(new SplFileInfo($location));
     }
 
-    /**
-     * @inheritdoc
-     */
-    public function getSize($path)
+    public function getSize(string $path): array
     {
         return $this->getMetadata($path);
     }
 
-    /**
-     * @inheritdoc
-     */
-    public function getMimetype($path)
+    public function getMimetype(string $path): array
     {
         $location = $this->applyPathPrefix($path);
         $finfo = new Finfo(FILEINFO_MIME_TYPE);
@@ -326,18 +276,12 @@ class Local extends AbstractAdapter
         return ['path' => $path, 'type' => 'file', 'mimetype' => $mimetype];
     }
 
-    /**
-     * @inheritdoc
-     */
-    public function getTimestamp($path)
+    public function getTimestamp(string $path): array
     {
         return $this->getMetadata($path);
     }
 
-    /**
-     * @inheritdoc
-     */
-    public function getVisibility($path)
+    public function getVisibility(string $path): array
     {
         $location = $this->applyPathPrefix($path);
         clearstatcache(false, $location);
@@ -347,62 +291,53 @@ class Local extends AbstractAdapter
         return compact('path', 'visibility');
     }
 
-    /**
-     * @inheritdoc
-     */
-    public function setVisibility($path, $visibility)
+    public function setVisibility(string $path, string $visibility): array
     {
         $location = $this->applyPathPrefix($path);
         $type = is_dir($location) ? 'dir' : 'file';
-        $success = chmod($location, $this->permissionMap[$type][$visibility]);
 
-        if ($success === false) {
-            return false;
+        if (chmod($location, $this->permissionMap[$type][$visibility]) === false) {
+            throw FilesystemOperationFailedException::setVisibility("Unable to chmod file at location {$location}.");
         }
 
         return compact('path', 'visibility');
     }
 
-    /**
-     * @inheritdoc
-     */
-    public function createDir($dirname, Config $config)
+    public function createDir(string $path, Config $config): array
     {
-        $location = $this->applyPathPrefix($dirname);
+        $location = $this->applyPathPrefix($path);
         $umask = umask(0);
         $visibility = $config->get('visibility', 'public');
 
-        if ( ! is_dir($location) && ! mkdir($location, $this->permissionMap['dir'][$visibility], true)) {
-            $return = false;
-        } else {
-            $return = ['path' => $dirname, 'type' => 'dir'];
+        try {
+            if ( ! is_dir($location) && ! mkdir($location, $this->permissionMap['dir'][$visibility], true)) {
+                throw FilesystemOperationFailedException::createDir("Unable to create directory at location {$location}.");
+            }
+
+            return ['path' => $path, 'type' => 'dir'];
+        } finally {
+            umask($umask);
         }
-
-        umask($umask);
-
-        return $return;
     }
 
-    /**
-     * @inheritdoc
-     */
-    public function deleteDir($dirname)
+    public function deleteDir(string $dirname): void
     {
         $location = $this->applyPathPrefix($dirname);
 
         if ( ! is_dir($location)) {
-            return false;
+            throw FilesystemOperationFailedException::deleteDir("Location '{$location}' is not a directory.");
         }
 
         $contents = $this->getRecursiveDirectoryIterator($location, RecursiveIteratorIterator::CHILD_FIRST);
 
         /** @var SplFileInfo $file */
         foreach ($contents as $file) {
-            $this->guardAgainstUnreadableFileInfo($file);
             $this->deleteFileInfoObject($file);
         }
 
-        return rmdir($location);
+        if ( ! rmdir($location)) {
+            throw FilesystemOperationFailedException::deleteDir("Unable to delete directory '{$location}'.");
+        }
     }
 
     /**
@@ -410,6 +345,10 @@ class Local extends AbstractAdapter
      */
     protected function deleteFileInfoObject(SplFileInfo $file)
     {
+        if ( ! $file->isReadable()) {
+            throw UnreadableFileException::forFileInfo($file);
+        }
+
         switch ($file->getType()) {
             case 'dir':
                 rmdir($file->getRealPath());
@@ -469,18 +408,6 @@ class Local extends AbstractAdapter
             new RecursiveDirectoryIterator($path, FilesystemIterator::SKIP_DOTS),
             $mode
         );
-    }
-
-    /**
-     * @param string $path
-     *
-     * @return DirectoryIterator
-     */
-    protected function getDirectoryIterator($path)
-    {
-        $iterator = new DirectoryIterator($path);
-
-        return $iterator;
     }
 
     /**

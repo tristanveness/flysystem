@@ -3,6 +3,7 @@
 namespace League\Flysystem\Adapter\Polyfill;
 
 use League\Flysystem\Config;
+use League\Flysystem\FilesystemOperationFailedException;
 use League\Flysystem\Util;
 
 trait StreamedWritingTrait
@@ -15,15 +16,15 @@ trait StreamedWritingTrait
      * @param Config   $config
      * @param string   $fallback
      *
-     * @return mixed fallback result
+     * @return array fallback result
+     *
+     * @throws FilesystemOperationFailedException
      */
-    protected function stream($path, $resource, Config $config, $fallback)
+    protected function stream(string $path, $resource, Config $config, $fallback): array
     {
         Util::rewindStream($resource);
-        $contents = stream_get_contents($resource);
-        $fallbackCall = [$this, $fallback];
 
-        return call_user_func($fallbackCall, $path, $contents, $config);
+        return call_user_func([$this, $fallback], $path, stream_get_contents($resource), $config);
     }
 
     /**
@@ -33,9 +34,11 @@ trait StreamedWritingTrait
      * @param resource $resource
      * @param Config   $config
      *
-     * @return mixed false or file metadata
+     * @return array file metadata
+     *
+     * @throws FilesystemOperationFailedException
      */
-    public function writeStream($path, $resource, Config $config)
+    public function writeStream(string $path, $resource, Config $config): array
     {
         return $this->stream($path, $resource, $config, 'write');
     }
@@ -45,16 +48,18 @@ trait StreamedWritingTrait
      *
      * @param string   $path
      * @param resource $resource
-     * @param Config   $config   Config object or visibility setting
+     * @param Config   $config Config object or visibility setting
      *
-     * @return mixed false of file metadata
+     * @return array file metadata
+     *
+     * @throws FilesystemOperationFailedException
      */
-    public function updateStream($path, $resource, Config $config)
+    public function updateStream(string $path, $resource, Config $config): array
     {
         return $this->stream($path, $resource, $config, 'update');
     }
 
-    // Required abstract methods
-    abstract public function write($pash, $contents, Config $config);
-    abstract public function update($pash, $contents, Config $config);
+    abstract public function write(string $path, string $contents, Config $config): array;
+
+    abstract public function update(string $path, string $contents, Config $config): array;
 }

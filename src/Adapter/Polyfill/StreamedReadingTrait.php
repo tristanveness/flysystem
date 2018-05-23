@@ -1,6 +1,7 @@
 <?php
 
 namespace League\Flysystem\Adapter\Polyfill;
+use League\Flysystem\FilesystemOperationFailedException;
 
 /**
  * A helper for adapters that only handle strings to provide read streams.
@@ -12,16 +13,14 @@ trait StreamedReadingTrait
      *
      * @param string $path
      *
-     * @return array|false
+     * @return array
      *
-     * @see League\Flysystem\ReadInterface::readStream()
+     * @throws FilesystemOperationFailedException
+     *
      */
-    public function readStream($path)
+    public function readStream(string $path): array
     {
-        if ( ! $data = $this->read($path)) {
-            return false;
-        }
-
+        $data = $this->read($path);
         $stream = fopen('php://temp', 'w+b');
         fwrite($stream, $data['contents']);
         rewind($stream);
@@ -31,14 +30,5 @@ trait StreamedReadingTrait
         return $data;
     }
 
-    /**
-     * Reads a file.
-     *
-     * @param string $path
-     *
-     * @return array|false
-     *
-     * @see League\Flysystem\ReadInterface::read()
-     */
-    abstract public function read($path);
+    abstract public function read(string $path): array;
 }

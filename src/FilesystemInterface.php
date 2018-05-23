@@ -13,29 +13,31 @@ interface FilesystemInterface
      *
      * @return bool
      */
-    public function has($path);
+    public function has(string $path): bool;
 
     /**
      * Read a file.
      *
      * @param string $path The path to the file.
      *
-     * @throws FileNotFoundException
+     * @return string the file contents
      *
-     * @return string|false The file contents or false on failure.
+     * @throws FilesystemOperationFailedException
+     * @throws FileNotFoundException
      */
-    public function read($path);
+    public function read(string $path): string;
 
     /**
      * Retrieves a read-stream for a path.
      *
      * @param string $path The path to the file.
      *
-     * @throws FileNotFoundException
+     * @return resource the file resource
      *
-     * @return resource|false The path resource or false on failure.
+     * @throws FilesystemOperationFailedException
+     * @throws FileNotFoundException
      */
-    public function readStream($path);
+    public function readStream(string $path);
 
     /**
      * List contents of a directory.
@@ -44,63 +46,70 @@ interface FilesystemInterface
      * @param bool   $recursive Whether to list recursively.
      *
      * @return array A list of file metadata.
+     *
+     * @throws FilesystemOperationFailedException
      */
-    public function listContents($directory = '', $recursive = false);
+    public function listContents(string $directory, $recursive = false): array;
 
     /**
      * Get a file's metadata.
      *
      * @param string $path The path to the file.
      *
-     * @throws FileNotFoundException
+     * @return array The file metadata
      *
-     * @return array|false The file metadata or false on failure.
+     * @throws FilesystemOperationFailedException
+     * @throws FileNotFoundException
      */
-    public function getMetadata($path);
+    public function getMetadata(string $path): array;
 
     /**
      * Get a file's size.
      *
      * @param string $path The path to the file.
      *
-     * @throws FileNotFoundException
+     * @return int the file size
      *
-     * @return int|false The file size or false on failure.
+     * @throws FilesystemOperationFailedException
+     * @throws FileNotFoundException
      */
-    public function getSize($path);
+    public function getSize(string $path): int;
 
     /**
      * Get a file's mime-type.
      *
      * @param string $path The path to the file.
      *
-     * @throws FileNotFoundException
+     * @return string the file mime-type
      *
-     * @return string|false The file mime-type or false on failure.
+     * @throws FileNotFoundException
+     * @throws FilesystemOperationFailedException
      */
-    public function getMimetype($path);
+    public function getMimetype(string $path): string;
 
     /**
      * Get a file's timestamp.
      *
      * @param string $path The path to the file.
      *
-     * @throws FileNotFoundException
+     * @return int The timestamp or false on failure.
      *
-     * @return string|false The timestamp or false on failure.
+     * @throws FileNotFoundException
+     * @throws FilesystemOperationFailedException
      */
-    public function getTimestamp($path);
+    public function getTimestamp(string $path): int;
 
     /**
      * Get a file's visibility.
      *
      * @param string $path The path to the file.
      *
-     * @throws FileNotFoundException
+     * @return string the visibility (public|private)
      *
-     * @return string|false The visibility (public|private) or false on failure.
+     * @throws FileNotFoundException
+     * @throws FilesystemOperationFailedException
      */
-    public function getVisibility($path);
+    public function getVisibility(string $path): string;
 
     /**
      * Write a new file.
@@ -110,10 +119,9 @@ interface FilesystemInterface
      * @param array  $config   An optional configuration array.
      *
      * @throws FileExistsException
-     *
-     * @return bool True on success, false on failure.
+     * @throws FilesystemOperationFailedException
      */
-    public function write($path, $contents, array $config = []);
+    public function write(string $path, string $contents, array $config = []): void;
 
     /**
      * Write a new file using a stream.
@@ -122,12 +130,10 @@ interface FilesystemInterface
      * @param resource $resource The file handle.
      * @param array    $config   An optional configuration array.
      *
-     * @throws InvalidArgumentException If $resource is not a file handle.
+     * @throws FilesystemOperationFailedException
      * @throws FileExistsException
-     *
-     * @return bool True on success, false on failure.
      */
-    public function writeStream($path, $resource, array $config = []);
+    public function writeStream(string $path, $resource, array $config = []): void;
 
     /**
      * Update an existing file.
@@ -136,11 +142,10 @@ interface FilesystemInterface
      * @param string $contents The file contents.
      * @param array  $config   An optional configuration array.
      *
-     * @throws FileNotFoundException
-     *
-     * @return bool True on success, false on failure.
+     * @throws FilesystemOperationFailedException
+     * @throws FileExistsException
      */
-    public function update($path, $contents, array $config = []);
+    public function update(string $path, string $contents, array $config = []): void;
 
     /**
      * Update an existing file using a stream.
@@ -149,38 +154,36 @@ interface FilesystemInterface
      * @param resource $resource The file handle.
      * @param array    $config   An optional configuration array.
      *
-     * @throws InvalidArgumentException If $resource is not a file handle.
-     * @throws FileNotFoundException
      *
-     * @return bool True on success, false on failure.
+     * @throws FilesystemOperationFailedException
+     * @throws FileExistsException
      */
-    public function updateStream($path, $resource, array $config = []);
+    public function updateStream(string $path, $resource, array $config = []): void;
 
     /**
      * Rename a file.
      *
-     * @param string $path    Path to the existing file.
-     * @param string $newpath The new path of the file.
+     * @param string $source
+     * @param string $destination
+     * @return void True on success, false on failure.
      *
-     * @throws FileExistsException   Thrown if $newpath exists.
-     * @throws FileNotFoundException Thrown if $path does not exist.
-     *
-     * @return bool True on success, false on failure.
+     * @throws FilesystemOperationFailedException
+     * @throws FileNotFoundException
+     * @throws FileExistsException
      */
-    public function rename($path, $newpath);
+    public function rename(string $source, string $destination): void;
 
     /**
      * Copy a file.
      *
-     * @param string $path    Path to the existing file.
-     * @param string $newpath The new path of the file.
+     * @param string $source      Path to the existing file.
+     * @param string $destination The new path of the file.
      *
      * @throws FileExistsException   Thrown if $newpath exists.
      * @throws FileNotFoundException Thrown if $path does not exist.
-     *
-     * @return bool True on success, false on failure.
+     * @throws FilesystemOperationFailedException
      */
-    public function copy($path, $newpath);
+    public function copy(string $source, string $destination): void;
 
     /**
      * Delete a file.
@@ -188,31 +191,29 @@ interface FilesystemInterface
      * @param string $path
      *
      * @throws FileNotFoundException
-     *
-     * @return bool True on success, false on failure.
+     * @throws FilesystemOperationFailedException
      */
-    public function delete($path);
+    public function delete(string $path): void;
 
     /**
      * Delete a directory.
      *
-     * @param string $dirname
+     * @param string $path
      *
-     * @throws RootViolationException Thrown if $dirname is empty.
-     *
-     * @return bool True on success, false on failure.
+     * @throws FilesystemOperationFailedException
+     * @throws RootViolationException
      */
-    public function deleteDir($dirname);
+    public function deleteDir(string $path): void;
 
     /**
      * Create a directory.
      *
-     * @param string $dirname The name of the new directory.
-     * @param array  $config  An optional configuration array.
+     * @param string $path   The name of the new directory.
+     * @param array  $config An optional configuration array.
      *
-     * @return bool True on success, false on failure.
+     * @throws FilesystemOperationFailedException
      */
-    public function createDir($dirname, array $config = []);
+    public function createDir(string $path, array $config = []): void;
 
     /**
      * Set the visibility for a file.
@@ -221,10 +222,9 @@ interface FilesystemInterface
      * @param string $visibility One of 'public' or 'private'.
      *
      * @throws FileNotFoundException
-     *
-     * @return bool True on success, false on failure.
+     * @throws FilesystemOperationFailedException
      */
-    public function setVisibility($path, $visibility);
+    public function setVisibility(string $path, string $visibility): void;
 
     /**
      * Create a file or update if exists.
@@ -233,9 +233,9 @@ interface FilesystemInterface
      * @param string $contents The file contents.
      * @param array  $config   An optional configuration array.
      *
-     * @return bool True on success, false on failure.
+     * @throws FilesystemOperationFailedException
      */
-    public function put($path, $contents, array $config = []);
+    public function put(string $path, string $contents, array $config = []): void;
 
     /**
      * Create a file or update if exists.
@@ -245,40 +245,19 @@ interface FilesystemInterface
      * @param array    $config   An optional configuration array.
      *
      * @throws InvalidArgumentException Thrown if $resource is not a resource.
-     *
-     * @return bool True on success, false on failure.
+     * @throws FilesystemOperationFailedException
      */
-    public function putStream($path, $resource, array $config = []);
+    public function putStream(string $path, $resource, array $config = []): void;
 
     /**
      * Read and delete a file.
      *
      * @param string $path The path to the file.
      *
+     * @return string the file contents
+     *
+     * @throws FilesystemOperationFailedException
      * @throws FileNotFoundException
-     *
-     * @return string|false The file contents, or false on failure.
      */
-    public function readAndDelete($path);
-
-    /**
-     * Get a file/directory handler.
-     *
-     * @deprecated
-     *
-     * @param string  $path    The path to the file.
-     * @param Handler $handler An optional existing handler to populate.
-     *
-     * @return Handler Either a file or directory handler.
-     */
-    public function get($path, Handler $handler = null);
-
-    /**
-     * Register a plugin.
-     *
-     * @param PluginInterface $plugin The plugin to register.
-     *
-     * @return $this
-     */
-    public function addPlugin(PluginInterface $plugin);
+    public function readAndDelete(string $path): string;
 }

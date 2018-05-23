@@ -40,7 +40,7 @@ class FileOverwritingAdapterStub implements AdapterInterface, CanOverwriteFiles
 
     }
 
-    public function rename($path, $newpath)
+    public function rename($source, $destination)
     {
 
     }

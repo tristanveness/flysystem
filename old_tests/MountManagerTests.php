@@ -160,14 +160,14 @@ class MountManagerTests extends TestCase
         $mountManager = new MountManager();
         $mountManager->mountFilesystem('local', $fs);
         $mountManager->mountFilesystem('huge', $fs2);
-        $results = $mountManager->listContents("local://tests/files");
+        $results = $mountManager->listContents("local://old_tests/files");
 
         foreach ($results as $result) {
             $this->assertArrayHasKey('filesystem', $result);
             $this->assertEquals($result['filesystem'], 'local');
         }
 
-        $results = $mountManager->listContents("huge://tests/files");
+        $results = $mountManager->listContents("huge://old_tests/files");
         foreach ($results as $result) {
             $this->assertArrayHasKey('filesystem', $result);
             $this->assertEquals($result['filesystem'], 'huge');
