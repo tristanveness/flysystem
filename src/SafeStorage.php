@@ -20,12 +20,12 @@ final class SafeStorage
         static::$safeStorage[$this->hash] = [];
     }
 
-    public function storeSafely($key, $value)
+    public function storeSafely(string $key, $value)
     {
         static::$safeStorage[$this->hash][$key] = $value;
     }
 
-    public function retrieveSafely($key)
+    public function retrieveSafely(string $key)
     {
         if (array_key_exists($key, static::$safeStorage[$this->hash])) {
             return static::$safeStorage[$this->hash][$key];
