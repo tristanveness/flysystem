@@ -42,7 +42,7 @@ trait ConfigAwareTrait
     protected function prepareConfig(array $config)
     {
         $config = new Config($config);
-        $config->setFallback($this->getConfig());
+        $config->setDefaults($this->getConfig());
 
         return $config;
     }

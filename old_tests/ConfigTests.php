@@ -14,7 +14,7 @@ class ConfigTests extends TestCase
         $config->set('setting', 'value');
         $this->assertEquals('value', $config->get('setting'));
         $fallback = new Config(['fallback_setting' => 'fallback_value']);
-        $config->setFallback($fallback);
+        $config->setDefaults($fallback);
         $this->assertEquals('fallback_value', $config->get('fallback_setting'));
     }
 
@@ -22,7 +22,7 @@ class ConfigTests extends TestCase
     {
         $config = new Config();
         $fallback = new Config(['setting_name' => true]);
-        $config->setFallback($fallback);
+        $config->setDefaults($fallback);
 
         $this->assertTrue($config->has('setting_name'));
     }
