@@ -142,14 +142,8 @@ class Local extends AbstractAdapter
         $this->ensureDirectory(dirname($location));
         $stream = fopen($location, 'w+b');
 
-        if ( ! $stream) {
-            throw FilesystemOperationFailedException::writeStream("Could not open stream at location {$location}.");
-        }
-
-        stream_copy_to_stream($resource, $stream);
-
-        if ( ! fclose($stream)) {
-            throw FilesystemOperationFailedException::writeStream("Could not close stream for file at location {$location}.");
+        if ( ! $stream || stream_copy_to_stream($resource, $stream) === false || ! fclose($stream)) {
+            throw FilesystemOperationFailedException::writeStream("Could not open write stream to location {$location}.");
         }
 
         $type = 'file';
